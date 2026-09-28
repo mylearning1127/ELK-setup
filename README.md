@@ -787,3 +787,56 @@ GET alerts/_search
 }
 ``
 ```
+
+
+```
+GET alerts/_search
+{
+  "size": 1000,
+  "_source": [
+    "flight_id",
+    "airline",
+    "status",
+    "delay_minutes",
+    "timestamp"
+  ],
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "term": {
+            "airline.keyword": "Air India"
+          }
+        },
+        {
+          "term": {
+            "status": "DELAYED"
+          }
+        },
+        {
+          "range": {
+            "delay_minutes": {
+              "gt": 30
+            }
+          }
+        },
+        {
+          "range": {
+            "timestamp": {
+              "gte": "now-24h",
+              "lte": "now"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "sort": [
+    {
+      "timestamp": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+```
