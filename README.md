@@ -71,6 +71,7 @@ Practical Elasticsearch query examples using the `alerts` index.
   * [Minimum](#minimum)
 * [12. Real-World Query](#12-real-world-query)
 * [13. Quick Reference](#13-quick-reference)
+* [14. All condition](#All-condition)
 
 ---
 
@@ -788,7 +789,7 @@ GET alerts/_search
 ``
 ```
 
-
+## All condition
 ```
 GET alerts/_search
 {
