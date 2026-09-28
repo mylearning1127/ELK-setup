@@ -40,15 +40,38 @@
 | Any field          | Any type  | `simple_query_string` | Safer/simple query syntax           |
 
 
+# Elasticsearch Query Examples
 
+This section contains commonly used Elasticsearch queries for the `alerts` index.
+
+---
+
+## 1. Search All Documents
+
+```http
 GET alerts/_search
+```
 
+By default, Elasticsearch returns 10 documents.
+
+---
+
+## 2. Limit the Number of Results
+
+```http
 GET alerts/_search
 {
   "size": 1
 }
+```
 
+`size` controls how many documents Elasticsearch returns.
 
+---
+
+## 3. Select Specific Fields
+
+```http
 GET alerts/_search
 {
   "_source": [
@@ -57,24 +80,57 @@ GET alerts/_search
     "status"
   ]
 }
+```
 
+`_source` allows you to return only the fields you need.
 
+---
+
+## 4. Term Query
+
+`term` is used for **exact-value matching**.
+
+Example: Find delayed flights.
+
+```http
 GET alerts/_search
 {
   "size": 100,
   "_source": [
-     "airline"
-    ],
+    "airline"
+  ],
   "query": {
     "term": {
       "status": "DELAYED"
     }
   }
 }
+```
 
-# Must => all condition should match
-# Example, the total values is 15 where both condition matched
+---
 
+# Bool Queries
+
+The `bool` query is used to combine multiple conditions.
+
+It provides:
+
+* `must` → All conditions must match
+* `should` → At least one condition should match
+* `must_not` → Exclude matching documents
+* `filter` → Filter documents without relevance scoring
+
+---
+
+## 5. Must
+
+`must` means **all conditions must match**.
+
+Example:
+
+> Airline must be IndiGo **AND** status must be DELAYED.
+
+```http
 GET alerts/_search
 {
   "query": {
@@ -94,10 +150,21 @@ GET alerts/_search
     }
   }
 }
+```
 
+Both conditions must be satisfied.
 
-# Atleast any one condition should match
-# Example, Here, total values is 213 because of should concept.
+---
+
+## 6. Should
+
+`should` means **at least one condition should match**.
+
+Example:
+
+> Airline is IndiGo **OR** status is DELAYED.
+
+```http
 GET alerts/_search
 {
   "query": {
@@ -117,9 +184,17 @@ GET alerts/_search
     }
   }
 }
+```
 
-# must_not, exclude the condition
-# Example, Here, total values is 614 because of must_not concept.
+A document matches if at least one of the conditions is satisfied.
+
+---
+
+## 7. Must Not
+
+`must_not` is used to **exclude documents** that match the specified conditions.
+
+```http
 GET alerts/_search
 {
   "query": {
@@ -139,10 +214,19 @@ GET alerts/_search
     }
   }
 }
+```
 
+This excludes documents matching the specified conditions.
 
-# Filter Used when you only need filtering and don't need relevance scoring.
-# max_score value is 0
+> **Note:** Multiple conditions inside `must_not` exclude documents matching **any** of those conditions.
+
+---
+
+## 8. Filter
+
+`filter` is used when you only need filtering and don't need relevance scoring.
+
+```http
 GET alerts/_search
 {
   "query": {
@@ -157,17 +241,41 @@ GET alerts/_search
     }
   }
 }
+```
 
-# gt  = greater than
-# gte = greater than or equal
-# lt  = less than
-# lte = less than or equal
-# GET alerts/_search
+Filter queries do not calculate relevance scores, so matching documents normally have:
+
+```text
+"_score": 0
+```
+
+---
+
+# Range Queries
+
+`range` is used for numbers and dates.
+
+### Range operators
+
+| Operator | Meaning               |
+| -------- | --------------------- |
+| `gt`     | Greater than          |
+| `gte`    | Greater than or equal |
+| `lt`     | Less than             |
+| `lte`    | Less than or equal    |
+
+---
+
+## 9. Number Range
+
+Find flights delayed by more than 30 minutes.
+
+```http
 GET alerts/_search
 {
   "_source": [
     "timestamp"
-    ], 
+  ],
   "query": {
     "range": {
       "delay_minutes": {
@@ -176,8 +284,21 @@ GET alerts/_search
     }
   }
 }
+```
 
-# now/d round of today't time to 00:00 and now+1d/d represents next day 00:00. for example the current time is 28-09-2026 23:31, so it assumes gte: 28-09-2026 00:00 & lte: 29-09-2026 00:00
+This means:
+
+```text
+delay_minutes > 30
+```
+
+---
+
+## 10. Date Range
+
+Find flights from today.
+
+```http
 GET alerts/_search
 {
   "query": {
@@ -202,20 +323,79 @@ GET alerts/_search
     }
   }
 }
+```
 
+This query has two conditions:
 
-# Difference between term & match
-# TERM => Exact value matching
-# match => Full-text search
-# match_pharse =. full text search
+```text
+timestamp = today
+AND
+delay_minutes > 30
+```
 
-# Based on mapping we have to finalise the method.
-# Term can be used in keyword
-# Match & Match_pharse can be used in text
-# Range can be used in integer & Date
+### Understanding `now/d`
 
+`now/d` rounds the current time down to the beginning of today.
+
+For example, if the current time is:
+
+```text
+28-09-2026 23:31
+```
+
+then:
+
+```text
+now/d
+↓
+28-09-2026 00:00
+```
+
+And:
+
+```text
+now+1d/d
+↓
+29-09-2026 00:00
+```
+
+Therefore:
+
+```text
+gte: now/d
+lt:  now+1d/d
+```
+
+means:
+
+```text
+28-09-2026 00:00
+        <= timestamp
+        <
+29-09-2026 00:00
+```
+
+---
+
+# Term vs Match vs Match Phrase
+
+The query method depends mainly on the **field mapping**.
+
+First, check the mapping:
+
+```http
 GET alerts/_mapping
+```
 
+---
+
+## 11. Term Query
+
+`term` is used for **exact-value matching**.
+
+Example:
+
+```http
 GET alerts/_search
 {
   "query": {
@@ -224,8 +404,19 @@ GET alerts/_search
     }
   }
 }
+```
 
+`status` is mapped as a `keyword`, so `term` is appropriate.
 
+---
+
+## 12. Match Query
+
+`match` is used for **full-text searching** on `text` fields.
+
+Example:
+
+```http
 GET alerts/_search
 {
   "query": {
@@ -234,7 +425,17 @@ GET alerts/_search
     }
   }
 }
+```
 
+The search text is analyzed before searching.
+
+---
+
+## 13. Match Phrase Query
+
+`match_phrase` is used when you want to search for a phrase in the same order.
+
+```http
 GET alerts/_search
 {
   "query": {
@@ -243,3 +444,83 @@ GET alerts/_search
     }
   }
 }
+```
+
+---
+
+# Field Mapping vs Query Type
+
+The field mapping helps determine which query is appropriate.
+
+| Field Type | Typical Queries         | Example         |
+| ---------- | ----------------------- | --------------- |
+| `text`     | `match`, `match_phrase` | `message`       |
+| `keyword`  | `term`, `terms`         | `status`        |
+| `integer`  | `range`, `term`         | `delay_minutes` |
+| `date`     | `range`                 | `timestamp`     |
+
+For the `alerts` index:
+
+| Field              | Mapping   | Typical Query           |
+| ------------------ | --------- | ----------------------- |
+| `message`          | `text`    | `match`, `match_phrase` |
+| `airline`          | `text`    | `match`                 |
+| `airline.keyword`  | `keyword` | `term`, `terms`         |
+| `status`           | `keyword` | `term`, `terms`         |
+| `flight_id`        | `keyword` | `term`, `terms`         |
+| `origin_code`      | `keyword` | `term`, `terms`         |
+| `destination_code` | `keyword` | `term`, `terms`         |
+| `delay_minutes`    | `integer` | `range`, `term`         |
+| `passengers`       | `integer` | `range`, `term`         |
+| `timestamp`        | `date`    | `range`                 |
+
+### Quick Mental Model
+
+```text
+TEXT
+ ├── match
+ └── match_phrase
+
+KEYWORD
+ ├── term
+ └── terms
+
+NUMBER
+ ├── range
+ └── term
+
+DATE
+ └── range
+
+MULTIPLE CONDITIONS
+ └── bool
+      ├── must
+      ├── should
+      ├── must_not
+      └── filter
+```
+
+---
+
+## 14. Complete Mapping
+
+To see the mapping of the `alerts` index:
+
+```http
+GET alerts/_mapping
+```
+
+To check the mapping of a specific field:
+
+```http
+GET alerts/_mapping/field/message
+```
+
+```http
+GET alerts/_mapping/field/status
+```
+
+```http
+GET alerts/_mapping/field/airline
+```
+
