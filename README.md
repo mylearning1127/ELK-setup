@@ -1,5 +1,12 @@
 # ELK-setup
 
+Docker command to start the containers
+#docker compose up -d
+
+Wait for 5 mins to container Kibana & Elastic starts.
+
+Access the Kibana through http://{VM IP}:5601
+
 | Field              | Mapping   | Typical query         | What you use it for                 |
 | ------------------ | --------- | --------------------- | ----------------------------------- |
 | `message`          | `text`    | `match`               | Search words                        |
